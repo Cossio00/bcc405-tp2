@@ -1,0 +1,14 @@
+dataset:
+  name: mnist
+  batch_size: 4
+  num_classes: 10
+
+model:
+  type: mlp
+  hidden_size: 256
+  num_layers: 3
+
+training:
+  epochs: 10
+  lr: 0.01
+  optimizer: adam
