@@ -4,7 +4,7 @@ import torch.optim as optim
 import copy
 
 class DLGAttack:
-    def __init__(self, model, target_gradients, target_labels=None, lr=0.1, optimizer_name="L-BFGS", num_iters=2000, num_restarts=5, device="cpu"):
+    def __init__(self, model, target_gradients, target_labels=None, lr=0.1, optimizer_name="L-BFGS", num_iters=5000, num_restarts=5, device="cpu"):
         self.model = copy.deepcopy(model).to(device).train()  # Usar train() para habilitar gradientes
         for param in self.model.parameters():
             param.requires_grad_(True)  # Forçar gradientes nos parâmetros copiados
@@ -19,18 +19,19 @@ class DLGAttack:
         self.params = tuple(p for p in self.model.parameters())
 
     def _init_data(self, shape, num_classes=10):
-        x_hat = torch.randn(shape, device=self.device, requires_grad=True)
+        # Usar Parameter para garantir leaf tensor
+        x_hat = torch.nn.Parameter(torch.randn(*shape, device=self.device) * 0.1) 
         if self.target_labels is not None:
-            y_hat = torch.tensor(self.target_labels, device=self.device)
+            y_hat = torch.tensor(self.target_labels, device=self.device, dtype=torch.long)
         else:
-            y_hat = torch.randn(1, num_classes, device=self.device, requires_grad=True)
+            y_hat = torch.nn.Parameter(torch.randn(1, num_classes, device=self.device) * 0.01)
         return x_hat, y_hat
 
     def _get_optimizer(self, params):
         if self.optimizer_name.lower() == "adam":
             return optim.Adam(params, lr=self.lr)
         else:
-            return optim.LBFGS(params, lr=self.lr, max_iter=20, line_search_fn=None)
+            return optim.LBFGS(params, lr=self.lr, max_iter=20)
 
     @torch.enable_grad()
     def _compute_gradients(self, x_hat, y_hat):
@@ -56,7 +57,7 @@ class DLGAttack:
             def closure():
                 optimizer.zero_grad(set_to_none=True)
                 g_hat, _ = self._compute_gradients(x_hat, y_hat)
-                loss_tensor = self._grad_loss(g_hat) + 1e-4 * x_hat.pow(2).sum()  # Adicionar regularização
+                loss_tensor = self._grad_loss(g_hat) + 1e-5 * x_hat.pow(2).sum()  # Reduzir regularização
                 loss_tensor.backward()
                 return loss_tensor
 
@@ -73,7 +74,8 @@ class DLGAttack:
                 final_loss_val = float(self._grad_loss(g_hat_final).detach())
             if final_loss_val < best_loss_val:
                 best_loss_val = final_loss_val
-                # Garantir que x_hat seja um tensor único
+                # Garantir que y_recon seja um rótulo inteiro
+                y_recon = y_hat.argmax(dim=-1).item() if y_hat.dim() > 1 else y_hat.item()
                 best_result = (x_hat.detach().clone().unsqueeze(0) if x_hat.dim() == 3 else x_hat.detach().clone(), 
-                            y_hat.argmax(dim=-1).detach() if y_hat.dim() > 1 else y_hat.detach())
+                              torch.tensor([y_recon], device=self.device, dtype=torch.long))
         return best_result, best_loss_val

@@ -19,7 +19,7 @@ parser.add_argument("--defense", type=str, default='none', choices=['none', 'cli
 parser.add_argument("--opt", type=str, required=True, choices=['adam', 'lbfgs'])
 parser.add_argument("--scenario", type=str, required=True, choices=['single', 'batch'])
 parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
-parser.add_argument("--iters", type=int, default=2000, help="Number of iterations")
+parser.add_argument("--iters", type=int, default=5000, help="Number of iterations")  # Aumentado para 5000
 parser.add_argument("--restarts", type=int, default=5, help="Number of restarts")
 parser.add_argument("--clip", type=float, default=1.0, help="Clipping value")
 parser.add_argument("--sigma", type=float, default=0.0, help="Sigma value")
