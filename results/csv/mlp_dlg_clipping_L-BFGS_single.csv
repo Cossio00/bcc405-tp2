@@ -1,2 +1,0 @@
-model,attack,defense,opt,scenario,lr,iters,restarts,clip,sigma,grad_loss,mse,psnr,ssim,time,label_true,label_recon
-mlp,dlg,clipping,L-BFGS,single,0.1,500,2,0.5,0.0,0.0,0.0,0.0,0.0,0.0,"[0, 1]","[0, 1]"
