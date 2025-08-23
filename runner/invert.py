@@ -63,14 +63,18 @@ elif args.defense == 'noise':
 print("Requires grad status:", [p.requires_grad for p in model.parameters()])
 
 # Run attack
+# Run attack
 start_time = time.time()
 if args.attack == 'dlg':
     attack = DLGAttack(model, grad_true, lr=args.lr, optimizer_name=args.opt, num_iters=args.iters, num_restarts=args.restarts, device=device)
-    x_recon, y_recon = attack.run(input_shape)
+    (x_recon, y_recon), best_loss_val = attack.run(input_shape)  # Desempacotar a tupla
 elif args.attack == 'idlg':
     attack = IDLGAttack(model, grad_true, lr=args.lr, optimizer_name=args.opt, num_iters=args.iters, num_restarts=args.restarts, device=device)
-    x_recon, y_recon = attack.run(input_shape)
+    (x_recon, y_recon), best_loss_val = attack.run(input_shape)  # Desempacotar a tupla
 elapsed = time.time() - start_time
+
+# E depois usar best_loss_val nas métricas
+grad_loss = best_loss_val  # Já que best_loss_val é a perda de gradiente final
 
 # Ajustar x_recon para o formato correto
 if isinstance(x_recon, tuple):
@@ -87,10 +91,23 @@ ssim_val = 0.0  # Placeholder, implemente com skimage.metrics.ssim se necessári
 best_loss = grad_loss.item() if grad_loss else 0.0
 
 # Ajustar y_recon para lidar com float
+# Ajustar y_recon para garantir que sejam inteiros
 if isinstance(y_recon, (int, float)):
-    y_recon = torch.tensor([int(y_recon)], device=device)  # Converter explicitamente para int
+    y_recon = torch.tensor([int(y_recon)], device=device)
 elif isinstance(y_recon, torch.Tensor):
-    y_recon = y_recon.to(torch.long)  # Garantir tipo longo
+    if y_recon.dtype != torch.long:  # Se não for do tipo longo, converter
+        y_recon = y_recon.round().to(torch.long)  # Arredondar e converter para inteiro
+    y_recon = y_recon.to(device)
+
+# Verificar se o número de rótulos corresponde ao esperado
+expected_labels = 1 if args.scenario == 'single' else 4
+if len(y_recon) != expected_labels:
+    print(f"Warning: Expected {expected_labels} labels, got {len(y_recon)}")
+    # Se não corresponder, usar os primeiros 'expected_labels' ou preencher
+    if len(y_recon) > expected_labels:
+        y_recon = y_recon[:expected_labels]
+    else:
+        y_recon = torch.cat([y_recon, torch.zeros(expected_labels - len(y_recon), dtype=torch.long, device=device)])
 
 # Save CSV
 header = ["model", "attack", "defense", "opt", "scenario", "lr", "iters", "restarts", "clip", "sigma", "grad_loss", "mse", "psnr", "ssim", "time", "label_true", "label_recon"]
