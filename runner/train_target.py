@@ -16,7 +16,7 @@ def get_dataloader(batch_size=32, scenario="single"):
         batch_size=batch_size, shuffle=True
     )
 
-def train_model(model_name="mlp", epochs=25, device="cpu", scenario="single"):
+def train_model(model_name="mlp", epochs=25, device="cpu", scenario="single", lr=0.1):
     if model_name == "mlp":
         model = MLP()
     else:
@@ -26,7 +26,7 @@ def train_model(model_name="mlp", epochs=25, device="cpu", scenario="single"):
     for param in model.parameters():
         param.requires_grad_(True)  # Habilitar gradientes
 
-    optimizer = optim.SGD(model.parameters(), lr=0.01)
+    optimizer = optim.SGD(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     loader = get_dataloader(scenario=scenario)  # Passar scenario para get_dataloader
 
@@ -59,7 +59,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train target model and save gradients")
     parser.add_argument("--model", type=str, required=True, choices=['mlp', 'cnn'])
     parser.add_argument("--scenario", type=str, required=True, choices=['single', 'batch'])
+    parser.add_argument("--lr", type=float, default=0.01, help="Learning rate for the optimizer")
     args = parser.parse_args()
 
     device = torch.device("cpu")  # Ajustar para 'cuda' se disponível
-    train_model(args.model, device=device, scenario=args.scenario)
+    train_model(args.model, device=device, scenario=args.scenario, lr=args.lr)
