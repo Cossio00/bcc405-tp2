@@ -16,7 +16,7 @@ def get_dataloader(batch_size=32, scenario="single"):
         batch_size=batch_size, shuffle=True
     )
 
-def train_model(model_name="mlp", epochs=5, device="cpu", scenario="single"):
+def train_model(model_name="mlp", epochs=25, device="cpu", scenario="single"):
     if model_name == "mlp":
         model = MLP()
     else:

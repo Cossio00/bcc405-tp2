@@ -17,11 +17,13 @@ class IDLGAttack:
         self.criterion = nn.CrossEntropyLoss()
         self.params = tuple(p for p in self.model.parameters())
         last_bias_grad = self.target_gradients[-1]
-        self.inferred_label = torch.argmin(last_bias_grad).item()
+        self.inferred_label = torch.argmin(last_bias_grad).item()  # Rótulo inicial inferido
 
     def _init_data(self, shape):
+        batch_size = shape[0] if len(shape) > 3 else 1  # Determinar batch_size a partir de shape
         x_hat = torch.randn(shape, device=self.device, requires_grad=True)
-        y_hat = torch.tensor([self.inferred_label], device=self.device)
+        # Replicar o rótulo inferido para o batch_size
+        y_hat = torch.full((batch_size,), self.inferred_label, device=self.device, dtype=torch.long)
         return x_hat, y_hat
 
     def _get_optimizer(self, params):

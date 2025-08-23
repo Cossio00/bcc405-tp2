@@ -3,7 +3,7 @@ import subprocess
 models = ["mlp", "cnn"]
 attacks = ["dlg", "idlg"]
 defenses = ["none", "clipping", "noise"]
-opts = ["L-BFGS", "Adam"]
+opts = ["lbfgs", "adam"]
 scenarios = ["single", "batch"]
 
 for model in models:
@@ -19,7 +19,7 @@ for model in models:
                         "--opt", opt,
                         "--scenario", scenario,
                         "--iters", "500",       # pode ajustar
-                        "--restarts", "2",      # pode ajustar
+                        "--restarts", "5",      # pode ajustar
                         "--lr", "0.1"
                     ]
                     if defense == "clipping":
