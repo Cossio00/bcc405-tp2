@@ -50,7 +50,7 @@ def train_model(model_name="mlp", epochs=5, device="cpu", scenario="single"):
             'model_state': model.state_dict(),
             'grads': [g.detach() for g in grads],  # Detach para evitar referência ao grafo
             'data': (x.detach(), y.detach())
-        }, f'results/grads/{model_name}_grads.pt')
+        }, f'results/grads/{model_name}_grads_{scenario}.pt')  # Incluir scenario no nome
         break  # Salvar apenas um exemplo
     return model
 

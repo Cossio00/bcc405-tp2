@@ -18,11 +18,11 @@ parser.add_argument("--attack", type=str, required=True, choices=['dlg', 'idlg']
 parser.add_argument("--defense", type=str, default='none', choices=['none', 'clip', 'noise'])
 parser.add_argument("--opt", type=str, required=True, choices=['adam', 'lbfgs'])
 parser.add_argument("--scenario", type=str, required=True, choices=['single', 'batch'])
-parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
-parser.add_argument("--iters", type=int, default=5000, help="Number of iterations")  # Aumentado para 5000
+parser.add_argument("--lr", type=float, default=0.1, help="Learning rate")
+parser.add_argument("--iters", type=int, default=10000, help="Number of iterations")  # Aumentado para 5000
 parser.add_argument("--restarts", type=int, default=5, help="Number of restarts")
 parser.add_argument("--clip", type=float, default=1.0, help="Clipping value")
-parser.add_argument("--sigma", type=float, default=0.0, help="Sigma value")
+parser.add_argument("--sigma", type=float, default=0.0, help="Sigma value") 
 args = parser.parse_args()
 
 # Create directories
@@ -42,7 +42,7 @@ if args.model == 'mlp':
 elif args.model == 'cnn':
     model = SmallCNN()
     input_shape = (1, 1, 28, 28) if args.scenario == 'single' else (4, 1, 28, 28)
-checkpoint = torch.load(f'results/grads/{args.model}_grads.pt')
+checkpoint = torch.load(f'results/grads/{args.model}_grads_{args.scenario}.pt')
 model.load_state_dict(checkpoint['model_state'])
 model.train()  # Habilitar gradientes
 for param in model.parameters():
@@ -88,7 +88,9 @@ best_loss = grad_loss.item() if grad_loss else 0.0
 
 # Ajustar y_recon para lidar com float
 if isinstance(y_recon, (int, float)):
-    y_recon = torch.tensor([y_recon], device=device)
+    y_recon = torch.tensor([int(y_recon)], device=device)  # Converter explicitamente para int
+elif isinstance(y_recon, torch.Tensor):
+    y_recon = y_recon.to(torch.long)  # Garantir tipo longo
 
 # Save CSV
 header = ["model", "attack", "defense", "opt", "scenario", "lr", "iters", "restarts", "clip", "sigma", "grad_loss", "mse", "psnr", "ssim", "time", "label_true", "label_recon"]

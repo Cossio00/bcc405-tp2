@@ -4,7 +4,7 @@ import torch.optim as optim
 import copy
 
 class DLGAttack:
-    def __init__(self, model, target_gradients, target_labels=None, lr=0.1, optimizer_name="L-BFGS", num_iters=5000, num_restarts=5, device="cpu"):
+    def __init__(self, model, target_gradients, target_labels=None, lr=0.1, optimizer_name="L-BFGS", num_iters=10000, num_restarts=5, device="cpu"):
         self.model = copy.deepcopy(model).to(device).train()  # Usar train() para habilitar gradientes
         for param in self.model.parameters():
             param.requires_grad_(True)  # Forçar gradientes nos parâmetros copiados
@@ -20,7 +20,7 @@ class DLGAttack:
 
     def _init_data(self, shape, num_classes=10):
         # Usar Parameter para garantir leaf tensor
-        x_hat = torch.nn.Parameter(torch.randn(*shape, device=self.device) * 0.1) 
+        x_hat = torch.nn.Parameter(torch.randn(*shape, device=self.device) * 0.1)
         if self.target_labels is not None:
             y_hat = torch.tensor(self.target_labels, device=self.device, dtype=torch.long)
         else:
@@ -56,8 +56,15 @@ class DLGAttack:
 
             def closure():
                 optimizer.zero_grad(set_to_none=True)
-                g_hat, _ = self._compute_gradients(x_hat, y_hat)
-                loss_tensor = self._grad_loss(g_hat) + 1e-5 * x_hat.pow(2).sum()  # Reduzir regularização
+                g_hat, pred_loss = self._compute_gradients(x_hat, y_hat)
+                # Adicionar penalidade para incentivar rótulo discreto
+                if y_hat.dim() > 1:
+                    y_softmax = y_hat.softmax(dim=-1)
+                    discrete_penalty = 1.0 - y_softmax.max(dim=-1)[0]  # Penaliza se não convergir para um único rótulo
+                    loss_tensor = self._grad_loss(g_hat) + pred_loss + 1.0 * discrete_penalty.sum() + 1e-5 * x_hat.pow(2).sum()  # Aumentar peso da penalidade
+                    print(f"Restart {restart} - y_hat softmax max: {y_softmax.max().item()}, argmax: {y_softmax.argmax().item()}")  # Depuração
+                else:
+                    loss_tensor = self._grad_loss(g_hat) + 1e-5 * x_hat.pow(2).sum()
                 loss_tensor.backward()
                 return loss_tensor
 
